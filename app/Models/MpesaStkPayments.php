@@ -15,6 +15,8 @@ class MpesaStkPayments extends Model
         'transaction_id',
         'transaction_date',
         'amount',
-        'msisdn'
+        'msisdn',
+        'account_reference',
+        'user_id'
     ];
 }

@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use App\Traits\MobileFormattingTrait;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class mpesaStkController extends Controller
 {
@@ -28,7 +29,7 @@ class mpesaStkController extends Controller
          $validatedData = Validator::make($request->all(), [
              'amount' => 'required|numeric',
              'msisdn' => 'required|numeric',
-             'userId' => 'required'
+             'userId' => 'required',
          ]);
      
          if ($validatedData->fails()) {
@@ -38,13 +39,15 @@ class mpesaStkController extends Controller
          // Access validated data
          $requestData = $validatedData->validated();
 
+         // Generate a random account reference
+            $randomAccountReference = Str::random(10); 
     
      
          // Add static values to the requestData array
          $requestData['transaction_type'] = 'CustomerPayBillOnline';
          $requestData['organization_code'] = env('SHORTCODE');
          $requestData['stk_callback'] = 'https://payment.cityrealtykenya.com/api/mpesa/callback/register';
-         $requestData['account_reference'] = $request->userId;
+         $requestData['account_reference'] = $randomAccountReference;
          $requestData['consumer_key'] = env('CONSUMER_KEY');
          $requestData['consumer_secret'] = env('CONSUMER_SECRET');
          $requestData['shortcode'] =env('SHORTCODE');
@@ -56,6 +59,9 @@ class mpesaStkController extends Controller
          // Call the service to initiate the STK push
          $mpesaStkService = new MpesaStkService;
          $response = $mpesaStkService->lipaNaMpesaStk($requestData);
+         $userId =$request->userId;
+
+         $accountReference = $requestData['account_reference'];
      
          if (isset($response['error'])) {
              return response()->json([
@@ -68,7 +74,7 @@ class mpesaStkController extends Controller
              Log::channel('mpesa')->info('STK Request successful: ' . json_encode($response));
      
              // Save payment
-             $result = $mpesaStkService->saveStkPayment($response, env('SHORTCODE'));
+             $result = $mpesaStkService->saveStkPayment($response, env('SHORTCODE'), $accountReference, $userId);
      
              if (isset($result['error'])) {
                  return response()->json([
@@ -80,7 +86,8 @@ class mpesaStkController extends Controller
              return response()->json([
                  'status' => 'success',
                  'message' => $response['ResponseDescription'],
-                 'data' => $response
+                 'data' => $response,
+                 'account_reference' => $accountReference, 
              ], 200);
          }
      

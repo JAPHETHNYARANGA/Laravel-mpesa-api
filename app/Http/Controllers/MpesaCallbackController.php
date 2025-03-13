@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Log;
 use App\Services\MpesaCallBackService;
 use Illuminate\Support\Facades\Validator;
 use App\Services\MpesaCallbackRegistrationService;
+use function response;
+
 
 class MpesaCallbackController extends Controller
 {

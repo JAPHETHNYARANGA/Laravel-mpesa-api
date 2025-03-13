@@ -52,7 +52,7 @@ class MpesaCallBackService
             $mpesaConfirmation->billref_no = $billRefNumber;
             $mpesaConfirmation->invoice_no = $invoiceNumber;
             $mpesaConfirmation->org_balance = $organizationBalance;
-            $mpesaConfirmation->thirdparty_transid = $thirdPartyTransId;
+            $mpesaConfirmation->transaction_id = $thirdPartyTransId;
             $mpesaConfirmation->mobile_number = $mobileNumber;
             $mpesaConfirmation->first_name = $firstName;
             $mpesaConfirmation->middle_name = $middleName;
@@ -60,6 +60,8 @@ class MpesaCallBackService
             $mpesaConfirmation->save();
 
             Log::channel('mpesa')->info('Mpesa Data Saved. TransId - ' . $transactionId);
+
+    
 
             return ['success' => 'Entry for ' . $transactionId . ' saved'];
         } catch (\Exception $e) {

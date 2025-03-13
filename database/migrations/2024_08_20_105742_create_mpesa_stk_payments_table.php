@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('business_shortcode')->nullable(); 
             $table->unsignedBigInteger('amount')->nullable(); 
             $table->string('msisdn')->nullable();
+            $table->string('account_reference')->nullable();
+            $table->string('user_id')->nullable();
             $table->timestamps();
         });
     }

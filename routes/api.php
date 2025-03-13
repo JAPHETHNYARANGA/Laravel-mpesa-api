@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\MpesaBusinessToCustomer;
 use App\Http\Controllers\MpesaCallbackController;
 use App\Http\Controllers\MpesaDataFetchController;
 use App\Http\Controllers\mpesaStkController;
@@ -47,4 +48,8 @@ Route::get('/mpesa/payments/stk', [MpesaDataFetchController::class, 'fetchStkPay
 Route::post('mpesa/customerTransactions', [MpesaDataFetchController::class,'fetchCustomerTransaction']);
 
 Route::get('mpesa/getAllTransactions', [MpesaDataFetchController::class, 'fetchAllTransactions']);
+
+Route::post('mpesa/confirmTransactions', [MpesaDataFetchController::class, 'fetchSuccessTransaction']);
+
+Route::post('/mpesa/b2c', [MpesaBusinessToCustomer::class, 'initiateB2C']);
 

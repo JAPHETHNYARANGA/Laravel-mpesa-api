@@ -9,6 +9,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
+use function response;
+
 
 class MpesaDataFetchController extends Controller
 {
@@ -24,7 +26,66 @@ class MpesaDataFetchController extends Controller
         try {
             // Validate that billref_no is passed in the request
             $validatedData = Validator::make($request->all(), [
-                'billref_no' => 'required|numeric|exists:mpesa_confirmations,billref_no'
+                'billref_no' => 'required'
+            ]);
+
+            if ($validatedData->fails()) {
+                return response()->json($validatedData->errors(), 422);
+            }
+
+            // Access validated data
+            $requestData = $validatedData->validated();
+            $billref_no = $requestData['billref_no'];
+
+            // Fetch the MpesaStkPayments record using the provided billref_no
+            $mpesapayments = MpesaStkPayments::where('user_id', $billref_no)->get();
+
+            // If no mpesa payments found for the given billref_no
+            if ($mpesapayments->isEmpty()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No transactions found for the given billref_no'
+                ], 404);
+            }
+
+            // Collect all account references from the retrieved payments
+            $accountReferences = $mpesapayments->pluck('account_reference')->toArray();
+
+            // Fetch corresponding MpesaConfirmation transactions using the account references
+            $transactions = MpesaConfirmation::whereIn('billref_no', $accountReferences)->get();
+
+            // If no matching confirmation transactions found
+            if ($transactions->isEmpty()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No confirmation transactions found for the given billref_no'
+                ], 404);
+            }
+
+            // Convert the transactions to an array
+            $transactionsArray = $transactions->toArray();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $transactionsArray
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::channel('mpesa')->error('Error fetching transactions: ' . $e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error fetching transactions: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function fetchSuccessTransaction(Request $request): JsonResponse
+    {
+        try {
+            // Validate that billref_no is passed in the request
+            $validatedData = Validator::make($request->all(), [
+                'transaction_id' => 'required'
             ]);
 
             if ($validatedData->fails()) {
@@ -34,29 +95,31 @@ class MpesaDataFetchController extends Controller
             // Access validated data
             $requestData = $validatedData->validated();
 
-            $billref_no = $requestData['billref_no'];
+            $transactionId = $requestData['transaction_id'];
 
-            // Fetch the transaction using the billref_no
-            $transaction = MpesaConfirmation::where('billref_no', $billref_no)->first();
+            // Fetch all transactions using the billref_no
+            $transactions = MpesaConfirmation::where('billref_no', $transactionId)->get();
 
-            // If no transaction is found
-            if (!$transaction) {
+            // If no transactions are found
+            if ($transactions->isEmpty()) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Transaction not found'
+                    'message' => 'No transactions found for the given billref_no'
                 ], 404);
             }
 
+        
+
             return response()->json([
                 'status' => 'success',
-                'data' => $transaction
+                'data' => $transactions
             ], 200);
         } catch (\Exception $e) {
-            Log::channel('mpesa')->error('Error fetching transaction: ' . $e->getMessage());
+            Log::channel('mpesa')->error('Error fetching transactions: ' . $e->getMessage());
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error fetching transaction: ' . $e->getMessage()
+                'message' => 'Error fetching transactions: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -109,8 +172,6 @@ class MpesaDataFetchController extends Controller
 
     public function fetchC2bPayments(Request $request):JsonResponse
     {
-
-
         try {
 
             $shortcode = $request->query('shortcode');
