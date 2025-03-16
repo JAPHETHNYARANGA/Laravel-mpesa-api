@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Services\MpesaAuthService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use function response;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use function response;
 
 class MpesaBusinessToCustomer extends Controller
 {
@@ -16,12 +17,12 @@ class MpesaBusinessToCustomer extends Controller
     {
         try {
             // Static values to be added to the requestData array
-            $requestData['transaction_type'] = 'CustomerPayBillOnline';
-            $requestData['organization_code'] = env('SHORTCODE');
+            $requestData['transaction_type'] = 'BusinessPayment';
+            $requestData['organization_code'] = env('B2C_SHORTCODE');
             $requestData['account_reference'] = $request->userId;
-            $requestData['consumer_key'] = env('CONSUMER_KEY');
-            $requestData['consumer_secret'] = env('CONSUMER_SECRET');
-            $requestData['shortcode'] = env('SHORTCODE');
+            $requestData['consumer_key'] = env('B2C_CONSUMER_KEY');
+            $requestData['consumer_secret'] = env('B2C_CONSUMER_SECRET');
+            $requestData['shortcode'] = env('B2C_SHORTCODE');
             $requestData['passkey'] = env('PASSKEY');
 
             $consumer_key = $requestData['consumer_key'];
@@ -36,11 +37,17 @@ class MpesaBusinessToCustomer extends Controller
             ]);
 
             // Static values from environment (defined in .env file)
-            $initiatorName = 'testapi';  // Initiator username
-            $securityCredential = '';    // This should be encrypted Initiator password (see encryption method below)
+            $initiatorName = env('B2C_USER_NAME');   // Initiator username
+            $initiatorPassword = env('B2C_PASSWORD');    // This should be the Initiator password
             $commandID = 'BusinessPayment';  // The command ID for business payments
-            $queueTimeoutURL = env('TIMEOUT_URL'); // URL to be called if the transaction times out
-            $resultURL = env('RESULT_URL');  // URL to be called when the result is returned
+            $queueTimeoutURL = env('B2C_TIMEOUT_URL'); // URL to be called if the transaction times out
+            $resultURL = env('B2C_RESULT_URL');  // URL to be called when the result is returned
+
+            // Encrypt the password using the certificate
+            $securityCredential = $this->encryptPassword($initiatorPassword);
+
+            // Log the security credential for debugging purposes (ensure not to log in production)
+            Log::channel('mpesa')->info('Security Credential: ' . $securityCredential);
 
             // Use the shortcode directly for party_a (Business shortcode)
             $partyA = $requestData['shortcode'];  // The business shortcode
@@ -58,10 +65,14 @@ class MpesaBusinessToCustomer extends Controller
             // Use the access token string
             $accessTokenString = $accessToken;  // If it's already a string, use it directly
 
+            $originatorConversationID = Str::uuid()->toString();
+
+
             // Prepare the data to be sent to Safaricom API
             $requestData = [
+                "OriginatorConversationID" => $originatorConversationID,
                 "InitiatorName" => $initiatorName,
-                "SecurityCredential" => $securityCredential, // SecurityCredential needs to be encrypted
+                "SecurityCredential" => $securityCredential, // Encrypted password
                 "CommandID" => $commandID,
                 "Amount" => $validated['amount'],
                 "PartyA" => $partyA,  // The business shortcode
@@ -74,26 +85,28 @@ class MpesaBusinessToCustomer extends Controller
 
             // Make the API request to initiate the B2C payment
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $accessTokenString,
+                'Authorization' => 'Bearer ' . $accessToken,
                 'Content-Type' => 'application/json',
-            ])->post('https://api.safaricom.co.ke/mpesa/b2c/v3/paymentrequest', [
-                "InitiatorName" => $initiatorName,
-                "SecurityCredential" => $securityCredential, // Encrypted password
-                "CommandID" => $commandID,
-                "Amount" => $validated['amount'],
-                "PartyA" => $partyA,  // Business shortcode
-                "PartyB" => $partyB,  // Customer's phone number
-                "Remarks" => $validated['remarks'] ?? "Payment",
-                "QueueTimeOutURL" => $queueTimeoutURL,
-                "ResultURL" => $resultURL,
-                "Occasion" => $validated['occasion'] ?? '',
-            ]);
-            
+            ])->post('https://api.safaricom.co.ke/mpesa/b2c/v3/paymentrequest', $requestData);
+
             // Log the response for debugging
             Log::channel('mpesa')->info('Response from Safaricom API: ' . json_encode($response->json()));
             
-            return response()->json($response->json());
-            
+            // Check if the request was successful
+            if ($response->successful()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Transaction request has been initiated successfully.',
+                    'data' => $response->json()
+                ]);
+            }
+
+            // If the request failed
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to initiate B2C request',
+                'error' => $response->json()
+            ], 400);
 
         } catch (\Exception $e) {
             Log::channel('mpesa')->error('Error fetching transaction: ' . $e->getMessage());
@@ -116,6 +129,20 @@ class MpesaBusinessToCustomer extends Controller
 
         return $mobile;
     }
+
+    // Method to encrypt the Initiator password using the certificate
+    private function encryptPassword($password)
+    {
+        // Load the certificate from the correct location
+        $publicKey = file_get_contents(base_path('ProductionCertificate.cer')); // Update this line
+    
+        // Encrypt the password using OpenSSL and the public key
+        openssl_public_encrypt($password, $encryptedPassword, $publicKey);
+    
+        // Return the encrypted password as a base64 encoded string
+        return base64_encode($encryptedPassword);
+    }
+    
 
     // Method to fetch the access token for API authentication
     private function getAccessToken(string $consumerKey, string $consumerSecret): string|JsonResponse

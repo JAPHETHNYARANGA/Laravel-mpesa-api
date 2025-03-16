@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\success_b2c_transactions;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -125,5 +126,40 @@ class MpesaCallbackController extends Controller
         ];
 
         return response()->json($response, 200);
+    }
+
+    public function handleB2CResult(Request $request)
+    {
+     
+
+        // Check if the response is successful
+        if ($request->input('ResultCode') == 0) {
+            // Store the successful transaction in the database
+            success_b2c_transactions::create([
+                'conversation_id' => $request->input('ConversationID'),
+                'transaction_id' => $request->input('TransactionID'),
+                'originator_conversation_id' => $request->input('OriginatorConversationID'),
+                'result_code' => $request->input('ResultCode'),
+                'result_desc' => $request->input('ResultDesc'),
+                // 'amount' => $request->input('Amount'),
+                // 'receiver_name' => $request->input('ReceiverPartyPublicName'),
+                // 'transaction_date' => $request->input('TransactionCompletedDateTime'),
+            ]);
+
+            // Return a success response to M-Pesa (you can adjust this based on M-Pesa's expected format)
+            return response()->json([
+                'ResponseCode' => '0',
+                'ResponseDescription' => 'Success'
+            ]);
+        } else {
+          
+
+            // Optionally, you can store the failed transaction details in a separate table for future reference
+
+            return response()->json([
+                'ResponseCode' => '1',
+                'ResponseDescription' => 'Failure'
+            ]);
+        }
     }
 }

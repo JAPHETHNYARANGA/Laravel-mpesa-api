@@ -51,5 +51,9 @@ Route::get('mpesa/getAllTransactions', [MpesaDataFetchController::class, 'fetchA
 
 Route::post('mpesa/confirmTransactions', [MpesaDataFetchController::class, 'fetchSuccessTransaction']);
 
-Route::post('/mpesa/b2c', [MpesaBusinessToCustomer::class, 'initiateB2C']);
+//b2c routes
+
+Route::post('mpesa/b2c', [MpesaBusinessToCustomer::class, 'initiateB2C']);
+Route::post('b2c/results', [MpesaCallbackController::class, 'handleB2CResult']);
+
 
