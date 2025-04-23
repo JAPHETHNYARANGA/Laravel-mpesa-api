@@ -18,9 +18,11 @@ return new class extends Migration
             $table->string('originator_conversation_id');
             $table->integer('result_code');
             $table->string('result_desc');
-            // $table->decimal('amount', 10, 2);
-            // $table->string('receiver_name');
-            // $table->timestamp('transaction_date');
+            $table->decimal('amount', 10, 2);
+            $table->string('receiver_name');
+            $table->string('receiver_phone');
+            $table->timestamp('transaction_date');
+            $table->string('account_reference')->nullable(); // From your requestData
             $table->timestamps();
         });
     }

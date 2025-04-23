@@ -10,6 +10,7 @@ use App\Services\MpesaCallBackService;
 use Illuminate\Support\Facades\Validator;
 use App\Services\MpesaCallbackRegistrationService;
 use function response;
+use Carbon\Carbon;
 
 
 class MpesaCallbackController extends Controller
@@ -130,37 +131,54 @@ class MpesaCallbackController extends Controller
 
     public function handleB2CResult(Request $request)
     {
+        Log::channel('mpesa')->info('B2C Result: ' . json_encode($request->all()));
 
+        try {
+            $data = $request->json('Result');
 
-        // Check if the response is successful
-        if ($request->input('ResultCode') == 0) {
-            // Store the successful transaction in the database
-            success_b2c_transactions::create([
-                'conversation_id' => $request->input('ConversationID'),
-                'transaction_id' => $request->input('TransactionID'),
-                'originator_conversation_id' => $request->input('OriginatorConversationID'),
-                'result_code' => $request->input('ResultCode'),
-                'result_desc' => $request->input('ResultDesc'),
-                // 'amount' => $request->input('Amount'),
-                // 'receiver_name' => $request->input('ReceiverPartyPublicName'),
-                // 'transaction_date' => $request->input('TransactionCompletedDateTime'),
-            ]);
+            // Save successful transaction
+            if ($data['ResultCode'] == 0) {
+                $params = $data['ResultParameters']['ResultParameter'];
 
-            // Return a success response to M-Pesa (you can adjust this based on M-Pesa's expected format)
-            return response()->json([
-                'ResponseCode' => '0',
-                'ResponseDescription' => 'Success'
-            ]);
-        } else {
+                $transaction = success_b2c_transactions::create([
+                    'conversation_id' => $data['ConversationID'],
+                    'transaction_id' => $data['TransactionID'],
+                    'originator_conversation_id' => $data['OriginatorConversationID'],
+                    'result_code' => $data['ResultCode'],
+                    'result_desc' => $data['ResultDesc'],
+                    'amount' => $this->getResultParameter($params, 'TransactionAmount'),
+                    'receiver_name' => $this->getResultParameter($params, 'ReceiverPartyPublicName'),
+                    'receiver_phone' => $this->extractPhoneNumber($this->getResultParameter($params, 'ReceiverPartyPublicName')),
+                    'transaction_date' => Carbon::createFromFormat('d.m.Y H:i:s', $this->getResultParameter($params, 'TransactionCompletedDateTime')),
+                ]);
 
+                return response()->json(['status' => 'success']);
+            }
 
-            // Optionally, you can store the failed transaction details in a separate table for future reference
+            // Log failed transaction
+            Log::channel('mpesa')->error('B2C Failed: ' . $data['ResultDesc']);
 
-            return response()->json([
-                'ResponseCode' => '1',
-                'ResponseDescription' => 'Failure'
-            ]);
+            return response()->json(['status' => 'error', 'message' => $data['ResultDesc']]);
+        } catch (\Exception $e) {
+            Log::channel('mpesa')->error('B2C Error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
+    }
+
+    private function getResultParameter(array $params, string $key)
+    {
+        foreach ($params as $param) {
+            if ($param['Key'] == $key) {
+                return $param['Value'];
+            }
+        }
+        return null;
+    }
+
+    private function extractPhoneNumber(string $publicName)
+    {
+        // Format: "254708374149 - John Doe"
+        return trim(explode('-', $publicName)[0]);
     }
 
     public function handleB2CTimeout(Request $request)

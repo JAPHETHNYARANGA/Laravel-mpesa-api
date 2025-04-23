@@ -15,8 +15,10 @@ class success_b2c_transactions extends Model
         'originator_conversation_id',
         'result_code',
         'result_desc',
-        // 'amount',
-        // 'receiver_name',
-        // 'transaction_date',
+        'amount',
+        'receiver_name',
+        'receiver_phone',
+        'transaction_date',
+        'account_reference'
     ];
 }
