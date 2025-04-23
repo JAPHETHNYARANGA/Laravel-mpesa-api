@@ -87,7 +87,7 @@ class MpesaBusinessToCustomer extends Controller
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $accessToken,
                 'Content-Type' => 'application/json',
-            ])->post('https://api.safaricom.co.ke/mpesa/b2c/v3/paymentrequest', $requestData);
+            ])->post('https://api.safaricom.co.ke/mpesa/b2c/v1/paymentrequest', $requestData);
 
             // Log the response for debugging
             Log::channel('mpesa')->info('Response from Safaricom API: ' . json_encode($response->json()));

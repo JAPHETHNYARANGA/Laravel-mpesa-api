@@ -29,7 +29,7 @@ class MpesaCallbackController extends Controller
     {
 
 
-        $validateData = Validator::make($request->all(),[
+        $validateData = Validator::make($request->all(), [
             'confirmation_url' => 'required|url',
             'validation_url' => 'required|url',
             'consumer_key' => 'required|string',
@@ -80,7 +80,7 @@ class MpesaCallbackController extends Controller
      * @return \Illuminate\Http\JsonResponse The response from the `MpesaCallBackService` after processing the callback data.
      */
 
-    public function handlec2bCallback(Request $request):JsonResponse
+    public function handlec2bCallback(Request $request): JsonResponse
     {
 
         Log::channel('app')->info('CallBack_Initiated: ' . json_encode($request->all()));
@@ -113,7 +113,7 @@ class MpesaCallbackController extends Controller
      * @return \Illuminate\Http\JsonResponse A JSON response indicating that the validation was accepted.
      */
 
-    public function handlec2bvalidation(Request $request):JsonResponse
+    public function handlec2bvalidation(Request $request): JsonResponse
     {
 
         Log::channel('app')->info('Validation_Initiated: ' . json_encode($request->all()));
@@ -130,7 +130,7 @@ class MpesaCallbackController extends Controller
 
     public function handleB2CResult(Request $request)
     {
-     
+
 
         // Check if the response is successful
         if ($request->input('ResultCode') == 0) {
@@ -152,7 +152,7 @@ class MpesaCallbackController extends Controller
                 'ResponseDescription' => 'Success'
             ]);
         } else {
-          
+
 
             // Optionally, you can store the failed transaction details in a separate table for future reference
 
@@ -161,5 +161,15 @@ class MpesaCallbackController extends Controller
                 'ResponseDescription' => 'Failure'
             ]);
         }
+    }
+
+    public function handleB2CTimeout(Request $request)
+    {
+        Log::channel('mpesa')->info('B2C Timeout Callback: ' . json_encode($request->all()));
+
+        return response()->json([
+            'ResponseCode' => '0',
+            'ResponseDescription' => 'Timeout received'
+        ]);
     }
 }

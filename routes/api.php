@@ -55,5 +55,6 @@ Route::post('mpesa/confirmTransactions', [MpesaDataFetchController::class, 'fetc
 
 Route::post('mpesa/b2c', [MpesaBusinessToCustomer::class, 'initiateB2C']);
 Route::post('b2c/results', [MpesaCallbackController::class, 'handleB2CResult']);
+Route::post('/b2c/timeout', [MpesaCallbackController::class, 'handleB2CTimeout']);
 
 
