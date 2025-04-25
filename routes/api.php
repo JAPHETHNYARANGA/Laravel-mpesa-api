@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\B2CTransactionController;
 use App\Http\Controllers\MpesaBusinessToCustomer;
 use App\Http\Controllers\MpesaCallbackController;
 use App\Http\Controllers\MpesaDataFetchController;
@@ -57,4 +58,4 @@ Route::post('mpesa/b2c', [MpesaBusinessToCustomer::class, 'initiateB2C']);
 Route::post('b2c/results', [MpesaCallbackController::class, 'handleB2CResult']);
 Route::post('/b2c/timeout', [MpesaCallbackController::class, 'handleB2CTimeout']);
 
-
+Route::post('/check-b2c-transaction', [B2CTransactionController::class, 'checkTransaction']);
