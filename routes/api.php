@@ -19,43 +19,44 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+
+Route::middleware(['ip.whitelist'])->group(function () {
+    Route::post('mpesa/b2c', [MpesaBusinessToCustomer::class, 'initiateB2C']);
 });
 
-// M-PESA  Confirmation Callback 
-Route::post('/payments/confirmation/callback',[MpesaCallbackController::class,'handlec2bCallback']);
+   // M-PESA  Confirmation Callback 
+   Route::post('/payments/confirmation/callback', [MpesaCallbackController::class, 'handlec2bCallback']);
 
-// M-PESA Validation Callback
-Route::post('/payments/validation/callback',[MpesaCallbackController::class,'handlec2bvalidation']);
+   // M-PESA Validation Callback
+   Route::post('/payments/validation/callback', [MpesaCallbackController::class, 'handlec2bvalidation']);
 
-//Fetch M-PESA Records
-Route::get('/mpesa/payments/c2b',[MpesaDataFetchController::class,'fetchC2bPayments']);
+   //Fetch M-PESA Records
+   Route::get('/mpesa/payments/c2b', [MpesaDataFetchController::class, 'fetchC2bPayments']);
 
-// Register M-PESA Callback
-Route::post('/mpesa/callback/register', [MpesaCallbackController::class,'registerCallback']);
+   // Register M-PESA Callback
+   Route::post('/mpesa/callback/register', [MpesaCallbackController::class, 'registerCallback']);
 
-//Initiate an STK request
-Route::post('/mpesa/stk/initiate', [mpesaStkController::class, 'initiateStkRequest']);
+   //Initiate an STK request
+   Route::post('/mpesa/stk/initiate', [mpesaStkController::class, 'initiateStkRequest']);
 
-//Handle the callback data from M-PESA
-Route::post('/mpesa/stk/callback', [mpesaStkController::class, 'handleStkCallback']);
+   //Handle the callback data from M-PESA
+   Route::post('/mpesa/stk/callback', [mpesaStkController::class, 'handleStkCallback']);
 
-//Fetch M-PESA STK payments from the database
-Route::get('/mpesa/payments/stk', [MpesaDataFetchController::class, 'fetchStkPayments']);
+   //Fetch M-PESA STK payments from the database
+   Route::get('/mpesa/payments/stk', [MpesaDataFetchController::class, 'fetchStkPayments']);
 
 
-//Fetch Customer successful transactions
-Route::post('mpesa/customerTransactions', [MpesaDataFetchController::class,'fetchCustomerTransaction']);
+   //Fetch Customer successful transactions
+   Route::post('mpesa/customerTransactions', [MpesaDataFetchController::class, 'fetchCustomerTransaction']);
 
-Route::get('mpesa/getAllTransactions', [MpesaDataFetchController::class, 'fetchAllTransactions']);
+   Route::get('mpesa/getAllTransactions', [MpesaDataFetchController::class, 'fetchAllTransactions']);
 
-Route::post('mpesa/confirmTransactions', [MpesaDataFetchController::class, 'fetchSuccessTransaction']);
+   Route::post('mpesa/confirmTransactions', [MpesaDataFetchController::class, 'fetchSuccessTransaction']);
 
-//b2c routes
+   //b2c routes
 
-Route::post('mpesa/b2c', [MpesaBusinessToCustomer::class, 'initiateB2C']);
-Route::post('b2c/results', [MpesaCallbackController::class, 'handleB2CResult']);
-Route::post('/b2c/timeout', [MpesaCallbackController::class, 'handleB2CTimeout']);
+  
+   Route::post('b2c/results', [MpesaCallbackController::class, 'handleB2CResult']);
+   Route::post('/b2c/timeout', [MpesaCallbackController::class, 'handleB2CTimeout']);
 
-Route::post('/check-b2c-transaction', [B2CTransactionController::class, 'checkTransaction']);
+   Route::post('/check-b2c-transaction', [B2CTransactionController::class, 'checkTransaction']);
