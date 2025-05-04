@@ -140,7 +140,7 @@ class MpesaCallbackController extends Controller
             if ($data['ResultCode'] == 0) {
                 $params = $data['ResultParameters']['ResultParameter'];
 
-                $transaction = success_b2c_transactions::create([
+                 success_b2c_transactions::create([
                     'conversation_id' => $data['ConversationID'],
                     'transaction_id' => $data['TransactionID'],
                     'originator_conversation_id' => $data['OriginatorConversationID'],
