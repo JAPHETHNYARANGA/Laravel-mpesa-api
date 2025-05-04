@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('success_b2c_transactions', function (Blueprint $table) {
             $table->id();
-            $table->string('conversation_id');
+            $table->string('conversation_id')->nullable();
             $table->string('transaction_id');
             $table->string('originator_conversation_id');
             $table->integer('result_code');
