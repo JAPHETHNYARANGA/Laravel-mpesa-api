@@ -10,7 +10,8 @@ class IPWhitelist
 {
      // List of allowed IP addresses
      private $allowedIps = [
-        '51.83.128.210',    
+        // '51.83.128.210',  
+        '161.97.97.137' 
     ];
 
     public function handle(Request $request, Closure $next)
